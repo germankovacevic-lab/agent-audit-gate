@@ -1,4 +1,6 @@
-# Switchboard — an audit gate for AI agent outbound messaging
+# Agent Audit Gate
+
+*(Internally codenamed **Switchboard** — that's why the ledger file and `SWITCHBOARD_` env vars carry that name.)*
 
 An [OpenClaw](https://openclaw.ai) plugin that puts a **human-or-senior-reviewer audit gate**
 in front of everything an AI agent would auto-send to a third party on a 1:1 channel.
@@ -24,6 +26,19 @@ the draft and routes it to a separate **reviewer** session that audits it agains
 before it is released **deliberately**.
 
 The operator's own number(s) and the agent's own line are exempt: they flow through normally.
+
+## Why this is different
+
+Human-in-the-loop approval gates are a well-established pattern — there is nothing novel
+about holding an action for sign-off. The twist here is that the reviewer is a **senior AI
+agent, not a human**: AI-in-the-loop. The draft is held and a *second* agent — one with more
+context and a security focus — audits it before release. That is what makes it scale: no
+human has to read every message, and the senior reviewer has context the channel session
+lacks (operator data, project boundaries, what counts as a leak).
+
+I couldn't find another plugin in the OpenClaw ecosystem (ClawHub, docs) that audits outbound
+**channel messages**. Lobster and similar gate workflow side-effects; this gates the actual
+messages a stranger can trigger — the words that leave the machine and land on someone's phone.
 
 ## How it works
 

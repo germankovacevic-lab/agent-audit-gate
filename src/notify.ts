@@ -1,6 +1,7 @@
 import { appendFileSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import type { GatewayConfig, InjectionHost, PluginApi } from "./types.ts";
 
 // Session key of the "senior" reviewer session that audits held drafts.
 // Configurable so this is not tied to any particular deployment.
@@ -45,8 +46,8 @@ export function buildAuditText(opts: { phone: string; inbound: string; draft: st
 // Resolves the /hooks/wake endpoint from the plugin config (api.config) or, if
 // not populated, by reading the gateway config from disk. The token lives in a
 // single place (hooks.token); we only read it here to authenticate the loopback wake.
-export function resolveWakeEndpoint(api: any): { url: string; token: string } | null {
-  let cfg: any = api?.config;
+export function resolveWakeEndpoint(api: PluginApi): { url: string; token: string } | null {
+  let cfg: GatewayConfig | undefined = api?.config;
   // Only read the gateway config from disk if the host did NOT wire a `hooks`
   // block into api.config. If the caller passed one (even disabled), honor it as-is
   // — we do not overwrite it with the on-disk one.
@@ -72,7 +73,7 @@ export function resolveWakeEndpoint(api: any): { url: string; token: string } | 
 // POST /hooks/wake (mode:"now"): enqueues a system event in the reviewer session
 // and triggers a real-time turn (event-driven, no polling, loopback).
 // Returns true if the gateway accepted the wake.
-async function postWake(api: any, text: string): Promise<boolean> {
+async function postWake(api: PluginApi, text: string): Promise<boolean> {
   const ep = resolveWakeEndpoint(api);
   if (!ep) {
     dbg({ phase: "postWake", ok: false, note: "hooks not enabled → fallback enqueue" });
@@ -103,8 +104,8 @@ async function postWake(api: any, text: string): Promise<boolean> {
 
 // PASSIVE FALLBACK: enqueue an injection for the reviewer session's next turn if
 // the real-time wake is unavailable. Lives on different hosts depending on wiring.
-async function fallbackEnqueue(api: any, text: string): Promise<boolean> {
-  const hosts: Array<[string, any]> = [
+async function fallbackEnqueue(api: PluginApi, text: string): Promise<boolean> {
+  const hosts: Array<[string, InjectionHost | undefined]> = [
     ["api.session.workflow", api?.session?.workflow],
     ["api.session", api?.session],
     ["api", api],
@@ -127,7 +128,7 @@ async function fallbackEnqueue(api: any, text: string): Promise<boolean> {
 // Wakes the reviewer session to AUDIT a held draft (auditor mode).
 // PREFERRED: /hooks/wake (real-time). FALLBACK: enqueueNextTurnInjection (passive).
 export async function notifyAudit(
-  api: any,
+  api: PluginApi,
   opts: { phone: string; inbound: string; draft: string; name?: string },
 ): Promise<void> {
   const text = buildAuditText(opts);

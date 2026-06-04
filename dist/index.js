@@ -233,9 +233,12 @@ function dbg2(obj) {
   }
 }
 var index_default = definePluginEntry({
-  id: "switchboard",
-  name: "WhatsApp Switchboard",
-  description: "Third-party WhatsApp DMs: capture as data + hold auto-reply draft for the operator to audit.",
+  id: "agent-audit-gate",
+  name: "Agent Audit Gate",
+  description: "Third-party WhatsApp DMs: capture as data + hold auto-reply draft for a senior reviewer to audit.",
+  // `api` is the plugin SDK handle (definePluginEntry's register callback). Its
+  // full shape is owned by the SDK; we only call `api.on(...)` and pass it
+  // through to the handlers, so we keep it dynamic here — the SDK trust boundary.
   register(api) {
     dbg2({ phase: "register" });
     api.on(

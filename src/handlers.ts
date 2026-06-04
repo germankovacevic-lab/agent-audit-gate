@@ -2,11 +2,12 @@ import { isThirdParty, normalizePhone } from "./verified.ts";
 import { captureInbound, captureOutbound, lastInboundText } from "./capture.ts";
 import { isDuplicateInbound } from "./dedup.ts";
 import { notifyAudit } from "./notify.ts";
+import type { ChannelEvent, HookContext, PluginApi } from "./types.ts";
 
 // Injectable deps for tests (temp store, fake notify/dbg). In production these
 // use the defaults: real ledger, real notifyAudit, dbg provided by index.ts.
 export type AuditNotify = (
-  api: any,
+  api: PluginApi,
   opts: { phone: string; inbound: string; draft: string; name?: string },
 ) => Promise<void>;
 
@@ -23,7 +24,12 @@ const noop = () => {};
 // generates the draft (handleSending → notifyAudit), which carries inbound + draft
 // together. With dmPolicy=open the draft is always generated; the inbound stays in
 // the ledger with full context.
-export async function handleInbound(api: any, event: any, ctx: any, deps: Deps = {}): Promise<void> {
+export async function handleInbound(
+  api: PluginApi,
+  event: ChannelEvent,
+  ctx: HookContext,
+  deps: Deps = {},
+): Promise<void> {
   const dbg = deps.dbg ?? noop;
   const channel = event?.channel ?? ctx?.channelId;
   if (channel !== "whatsapp") return;
@@ -54,9 +60,9 @@ export async function handleInbound(api: any, event: any, ctx: any, deps: Deps =
 // carries ctx.senderId; the operator's deliberate sends (message send) do NOT → they pass.
 // Returns { cancel: true } to stop the auto-reply; undefined lets it through.
 export async function handleSending(
-  api: any,
-  event: any,
-  ctx: any,
+  api: PluginApi,
+  event: ChannelEvent,
+  ctx: HookContext,
   deps: Deps = {},
 ): Promise<{ cancel: true; cancelReason: string } | undefined> {
   const dbg = deps.dbg ?? noop;
