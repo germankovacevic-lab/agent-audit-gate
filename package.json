@@ -1,0 +1,10 @@
+{
+  "name": "openclaw-switchboard",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "openclaw": {
+    "extensions": ["./index.ts"],
+    "compat": { "pluginApi": ">=2026.5.0", "minGatewayVersion": "2026.5.0" }
+  }
+}

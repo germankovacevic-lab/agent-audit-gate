@@ -1,0 +1,8 @@
+{
+  "id": "switchboard",
+  "name": "WhatsApp Switchboard",
+  "description": "Claims third-party 1:1 WhatsApp DMs, holds the auto-reply draft ('held') and wakes a reviewer session to audit it and release it deliberately.",
+  "contracts": { "hooks": ["message_received", "message_sending"] },
+  "activation": { "onStartup": true },
+  "configSchema": { "type": "object", "additionalProperties": true }
+}
