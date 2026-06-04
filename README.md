@@ -1,6 +1,6 @@
 # Agent Audit Gate
 
-*(Internally codenamed **Switchboard** — that's why the ledger file and `SWITCHBOARD_` env vars carry that name.)*
+*(Internally codenamed **Switchboard** — that's why the plugin id, the ledger file, and the `SWITCHBOARD_` env vars carry that name.)*
 
 An [OpenClaw](https://openclaw.ai) plugin that puts a **human-or-senior-reviewer audit gate**
 in front of everything an AI agent would auto-send to a third party on a 1:1 channel.

@@ -1,5 +1,5 @@
 {
-  "id": "agent-audit-gate",
+  "id": "switchboard",
   "name": "Agent Audit Gate",
   "description": "An audit gate for AI agent outbound messaging: holds the auto-reply draft ('held') and wakes a senior reviewer session to audit it and release it deliberately.",
   "contracts": { "hooks": ["message_received", "message_sending"] },

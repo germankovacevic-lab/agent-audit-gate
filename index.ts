@@ -23,7 +23,7 @@ function dbg(obj: unknown): void {
 // releases it with a deliberate `message send`. The logic lives in
 // src/handlers.ts (testable); here we only wire the hooks.
 export default definePluginEntry({
-  id: "agent-audit-gate",
+  id: "switchboard", // runtime/config id = codename (plugins.entries.switchboard); display name below
   name: "Agent Audit Gate",
   description: "Third-party WhatsApp DMs: capture as data + hold auto-reply draft for a senior reviewer to audit.",
   // `api` is the plugin SDK handle (definePluginEntry's register callback). Its

@@ -233,7 +233,8 @@ function dbg2(obj) {
   }
 }
 var index_default = definePluginEntry({
-  id: "agent-audit-gate",
+  id: "switchboard",
+  // runtime/config id = codename (plugins.entries.switchboard); display name below
   name: "Agent Audit Gate",
   description: "Third-party WhatsApp DMs: capture as data + hold auto-reply draft for a senior reviewer to audit.",
   // `api` is the plugin SDK handle (definePluginEntry's register callback). Its
