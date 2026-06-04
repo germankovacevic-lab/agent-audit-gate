@@ -44,6 +44,29 @@ messages a stranger can trigger — the words that leave the machine and land on
 
 ## How it works
 
+```text
+third-party 1:1 DM
+      │
+      ▼
+message_received   ──►  ledger: pending     (reviewer NOT woken yet)
+      │
+      ▼
+agent auto-drafts a reply
+      │
+      ▼
+message_sending    ──►  HELD                (draft is NOT sent)
+      │
+      ▼
+wake reviewer  ◄──  carries the inbound + the draft
+      │
+      ▼
+reviewer audits ──┬──►  RELEASE → deliberate send → answered
+                  └──►  DROP    → dropped (nothing sent)
+```
+
+> The operator's own number(s) bypass the gate and flow through normally.
+> If a `held`/`pending` thread is never audited, the [stale-thread sweep](#safety-net--stale-thread-sweep) flags it.
+
 Two edge I/O hooks (`priority: 100`). The logic lives in `src/handlers.ts` (testable);
 `index.ts` only wires the hooks.
 
