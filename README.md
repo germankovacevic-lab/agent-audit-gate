@@ -73,6 +73,23 @@ reference checklist** — adapt the policy wording to your own deployment.
 allowlist. The allowlist is config-driven (see below). An unknown/empty sender is also a
 third party — **fail-safe by default**.
 
+## Install
+
+This is an OpenClaw plugin. Install it straight from this repo:
+
+```bash
+openclaw plugins install git:github.com/germankovacevic-lab/agent-audit-gate
+```
+
+Or clone and link it for local development:
+
+```bash
+git clone https://github.com/germankovacevic-lab/agent-audit-gate
+openclaw plugins install --link ./agent-audit-gate
+```
+
+Then set the environment variables below and restart the gateway.
+
 ## Configuration
 
 All deployment-specific values are read from environment variables; no real numbers, names,
