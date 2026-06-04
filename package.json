@@ -5,12 +5,24 @@
   "author": "German Kovacevic",
   "description": "An audit gate for AI agent outbound messaging: hold the draft, let a senior agent review it, then release.",
   "type": "module",
+  "scripts": {
+    "build": "esbuild index.ts --bundle --format=esm --platform=node --packages=external --outfile=dist/index.js",
+    "test": "node --test test/*.test.ts"
+  },
   "openclaw": {
-    "extensions": ["./index.ts"],
-    "compat": { "pluginApi": ">=2026.5.0", "minGatewayVersion": "2026.5.0" },
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.5.0",
+      "minGatewayVersion": "2026.5.0"
+    },
     "build": {
       "openclawVersion": "2026.5.28",
       "pluginSdkVersion": "2026.5.28"
     }
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0"
   }
 }
