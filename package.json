@@ -1,7 +1,9 @@
 {
-  "name": "openclaw-switchboard",
+  "name": "agent-audit-gate",
   "version": "0.1.0",
   "license": "MIT",
+  "author": "German Kovacevic",
+  "description": "An audit gate for AI agent outbound messaging: hold the draft, let a senior agent review it, then release.",
   "type": "module",
   "openclaw": {
     "extensions": ["./index.ts"],
