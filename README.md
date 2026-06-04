@@ -2,13 +2,15 @@
 
 *(Internally codenamed **Switchboard** — that's why the plugin id, the ledger file, and the `SWITCHBOARD_` env vars carry that name.)*
 
-An [OpenClaw](https://openclaw.ai) plugin that puts a **human-or-senior-reviewer audit gate**
-in front of everything an AI agent would auto-send to a third party on a 1:1 channel.
+An [OpenClaw](https://openclaw.ai) plugin that puts an **AI-in-the-loop audit gate**
+in front of everything an AI agent would auto-send to a third party on a 1:1 channel —
+the reviewer is a **senior agent, not a human** (escalating to you only when it matters).
 
 > **"Junior drafts, senior approves."**
 
 This is a **reference implementation** of a pattern, not a turnkey product. It is small and
-readable on purpose: read the source, take the idea, adapt it to your own deployment.
+readable on purpose: read the source, take the idea, and adapt it — the audit policy and the
+channels are env-configurable, so the common cases need no fork.
 
 ## The problem
 
@@ -45,8 +47,8 @@ messages a stranger can trigger — the words that leave the machine and land on
 Two edge I/O hooks (`priority: 100`). The logic lives in `src/handlers.ts` (testable);
 `index.ts` only wires the hooks.
 
-- **`message_received`** (`handleInbound`) — a 1:1 WhatsApp DM from a third party is written
-  to the ledger as `pending`. It does **not** wake the reviewer on its own; the wake arrives
+- **`message_received`** (`handleInbound`) — a 1:1 DM from a third party (WhatsApp by default;
+  any channel via `SWITCHBOARD_CHANNELS`) is written to the ledger as `pending`. It does **not** wake the reviewer on its own; the wake arrives
   together with the draft (next step), so the reviewer sees the inbound and the draft at once.
 - **`message_sending`** (`handleSending`):
   - **auto-reply to a third party** (`ctx.senderId` is present) → the draft is **held**
@@ -117,6 +119,10 @@ or paths are hardcoded.
 | `SWITCHBOARD_AUDIT_SESSION` | Session key of the reviewer session that audits held drafts.            | `agent:main:main`                        |
 | `SWITCHBOARD_CONFIG_PATH`   | Gateway config file, read only to obtain the loopback hooks token.      | `~/.openclaw/openclaw.json`              |
 | `SWITCHBOARD_DEBUG_LOG`     | Optional path for opt-in debug logging. **Unset = no logging** (so no third-party data ever touches disk). | *(unset → disabled)*                     |
+| `SWITCHBOARD_CHANNELS`      | Comma-separated 1:1 messaging channels the plugin intercepts.           | `whatsapp`                               |
+| `SWITCHBOARD_AUDIT_POLICY`  | Overrides the audit checklist the reviewer applies to a held draft.     | *(built-in generic gate)*                |
+| `SWITCHBOARD_RELEASE_CHANNEL` | Channel shown in the release command inside the audit text. Defaults to the first `SWITCHBOARD_CHANNELS` entry, else `whatsapp`. | `whatsapp`                               |
+| `SWITCHBOARD_STALE_MS`      | Age after which a `held`/`pending` thread is reported by the [stale-thread sweep](#safety-net--stale-thread-sweep). | `900000` (15 min)                        |
 
 Example:
 
@@ -131,6 +137,30 @@ In the OpenClaw gateway, enable the plugin with
 It does **not** need `allowConversationAccess`: it uses only the edge I/O hooks
 `message_received` / `message_sending`, which do not require conversation access.
 
+## Safety net — stale-thread sweep
+
+The real-time wake (and its passive `enqueueNextTurnInjection` fallback) can *both* fail —
+gateway down, hooks misconfigured, no reviewer turn. When that happens a draft sits `held`
+(or an inbound sits `pending`) in the ledger forever, and nobody is told. `src/sweep.ts`
+closes that gap: a **pure, read-only** function that finds threads stuck past a threshold so
+you can alert on them.
+
+```ts
+import { findStaleThreads, buildStaleAlert } from "./src/sweep.ts";
+
+// Run this on YOUR scheduler (cron, a heartbeat tick — the plugin starts no timers itself).
+const stale = await findStaleThreads(); // held/pending older than SWITCHBOARD_STALE_MS (default 15m)
+if (stale.length) {
+  // buildStaleAlert returns a string only — nothing is written to disk.
+  await notifyOperator(buildStaleAlert(stale));
+}
+```
+
+Closed states (`answered`/`dropped`/`suppressed`/`bot_loop`) are never reported; the last event
+per thread wins, so a released draft drops off automatically. Make the alert path independent of
+the wake path it is backing up — if you wake a reviewer to deliver it, you have re-introduced the
+single point of failure this is meant to cover.
+
 ## Tests
 
 ```bash
@@ -140,7 +170,8 @@ node --test test/*.test.ts
 Covers: `verified` (third-party detection + config-driven allowlist), `capture`
 (ledger + `held`/`dropped` + `lastInboundText`), `dedup` (flood/echo suppression),
 `notify` (`buildAuditText` + `resolveWakeEndpoint` + a real POST to a loopback test server),
-and `handlers` (the glue for both hooks with injectable deps).
+`handlers` (the glue for both hooks with injectable deps), and `sweep` (stale-thread detection
++ alert, with a fixed clock and temp ledgers).
 
 > ⚠️ **Test side-effect to be aware of:** `resolveWakeEndpoint` falls back to reading the real
 > gateway config from disk when `api.config.hooks` is not wired — a test with a bare `api`
@@ -152,9 +183,9 @@ and `handlers` (the glue for both hooks with injectable deps).
 
 - **Config-level fail-safe:** with an open DM policy, if the plugin is down the auto-reply
   returns. Pair it with a floor-level allowlist (plugin down = silence, not leak).
-- **Optional safety net:** if the auto-reply is ever suppressed upstream (no draft → no wake),
-  the inbound sits `pending` in the ledger but fires no notification. A timeout that wakes on
-  stale `pending` entries would close that gap.
+- **Scheduler not bundled:** the stale-thread safety net ([below](#safety-net--stale-thread-sweep))
+  ships as a pure function, not a running timer — you wire it to your own scheduler (cron, a
+  heartbeat, etc.). The plugin does not start background timers on its own, by design.
 
 This is a **reference implementation**. It demonstrates the pattern honestly; it is not a
 hardened, supported product. Read it, fork it, adapt it.

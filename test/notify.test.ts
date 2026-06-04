@@ -5,7 +5,13 @@ import { createServer } from "node:http";
 // Guard: no test may fall through to a real gateway config or POST to a live gateway.
 process.env.NODE_ENV = "test";
 
-import { buildAuditText, resolveWakeEndpoint, notifyAudit } from "../src/notify.ts";
+import {
+  buildAuditText,
+  resolveWakeEndpoint,
+  notifyAudit,
+  resolveAuditTextConfig,
+  DEFAULT_AUDIT_POLICY,
+} from "../src/notify.ts";
 
 const PHONE = "15555550000"; // obviously-fake placeholder
 
@@ -83,4 +89,47 @@ test("notifyAudit falls back to enqueueNextTurnInjection if there is no hooks en
 
 test("notifyAudit does not blow up if there is no endpoint and no fallback", async () => {
   await notifyAudit({ config: { hooks: { enabled: false } } }, { phone: "15550000", inbound: "a", draft: "b" });
+});
+
+test("buildAuditText uses a custom policy when provided, and the default otherwise", () => {
+  const custom = buildAuditText({ phone: PHONE, inbound: "x", draft: "y" }, { policy: "MY CUSTOM POLICY" });
+  assert.ok(custom.includes("MY CUSTOM POLICY"), "uses the configured policy");
+  assert.ok(!custom.includes(DEFAULT_AUDIT_POLICY), "drops the default when overridden");
+  const def = buildAuditText({ phone: PHONE, inbound: "x", draft: "y" });
+  assert.ok(def.includes(DEFAULT_AUDIT_POLICY), "falls back to the default policy");
+});
+
+test("buildAuditText release command reflects the configured channel", () => {
+  const t = buildAuditText({ phone: PHONE, inbound: "x", draft: "y" }, { releaseChannel: "telegram" });
+  assert.ok(t.includes("--channel telegram"), "uses the configured release channel");
+  assert.ok(!t.includes("--channel whatsapp"), "no longer hardcodes whatsapp");
+});
+
+test("resolveAuditTextConfig reads policy + release channel from env (injected)", () => {
+  const cfg = resolveAuditTextConfig({
+    SWITCHBOARD_AUDIT_POLICY: "P",
+    SWITCHBOARD_RELEASE_CHANNEL: "signal",
+  } as NodeJS.ProcessEnv);
+  assert.equal(cfg.policy, "P");
+  assert.equal(cfg.releaseChannel, "signal");
+});
+
+test("resolveAuditTextConfig derives the release channel from the first SWITCHBOARD_CHANNELS entry", () => {
+  const cfg = resolveAuditTextConfig({ SWITCHBOARD_CHANNELS: "telegram, signal" } as NodeJS.ProcessEnv);
+  assert.equal(cfg.releaseChannel, "telegram", "first channel becomes the release channel");
+  // explicit SWITCHBOARD_RELEASE_CHANNEL still wins over the derived one
+  const explicit = resolveAuditTextConfig({
+    SWITCHBOARD_CHANNELS: "telegram",
+    SWITCHBOARD_RELEASE_CHANNEL: "signal",
+  } as NodeJS.ProcessEnv);
+  assert.equal(explicit.releaseChannel, "signal");
+});
+
+test("resolveAuditTextConfig ignores blank env values (→ defaults apply downstream)", () => {
+  const cfg = resolveAuditTextConfig({
+    SWITCHBOARD_AUDIT_POLICY: "  ",
+    SWITCHBOARD_RELEASE_CHANNEL: "",
+  } as NodeJS.ProcessEnv);
+  assert.equal(cfg.policy, undefined);
+  assert.equal(cfg.releaseChannel, undefined);
 });

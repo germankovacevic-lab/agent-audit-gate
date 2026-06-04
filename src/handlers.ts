@@ -15,9 +15,26 @@ export type Deps = {
   store?: string;
   notify?: AuditNotify;
   dbg?: (obj: unknown) => void;
+  channels?: string[]; // channels the plugin claims (default: ["whatsapp"])
 };
 
 const noop = () => {};
+
+// Channels the plugin intercepts by DEFAULT. Keeping it ["whatsapp"] reproduces
+// the original behavior exactly.
+export const DEFAULT_CHANNELS = ["whatsapp"];
+
+// Resolves the set of channels the plugin intercepts. Priority: deps.channels
+// (tests) → SWITCHBOARD_CHANNELS env (comma-separated) → default ["whatsapp"].
+// Fail-safe: blank/invalid → defaults.
+export function resolveChannels(deps: Deps = {}, env: NodeJS.ProcessEnv = process.env): string[] {
+  if (Array.isArray(deps.channels) && deps.channels.length) return deps.channels;
+  const fromEnv = (env.SWITCHBOARD_CHANNELS ?? "")
+    .split(",")
+    .map((c) => c.trim())
+    .filter((c) => c.length > 0);
+  return fromEnv.length ? fromEnv : DEFAULT_CHANNELS;
+}
 
 // INBOUND: captures the third party's message as data ('pending'). Does NOT wake
 // the operator's main session: in auditor mode the wake arrives when the channel
@@ -32,7 +49,7 @@ export async function handleInbound(
 ): Promise<void> {
   const dbg = deps.dbg ?? noop;
   const channel = event?.channel ?? ctx?.channelId;
-  if (channel !== "whatsapp") return;
+  if (!resolveChannels(deps).includes(channel)) return;
   const sender = event?.senderId ?? event?.from ?? ctx?.senderId;
   if (!isThirdParty(sender)) return; // operator / agent's own line → normal flow
   const sessionKey: string = event?.sessionKey ?? ctx?.sessionKey ?? "";
@@ -68,7 +85,7 @@ export async function handleSending(
   const dbg = deps.dbg ?? noop;
   const notify = deps.notify ?? notifyAudit;
   const channel = event?.channel ?? ctx?.channelId;
-  if (channel !== "whatsapp") return;
+  if (!resolveChannels(deps).includes(channel)) return;
   const text = String(event?.content ?? "").trim();
   const sender = ctx?.senderId; // present only on auto-reply
 

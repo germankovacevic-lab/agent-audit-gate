@@ -10,7 +10,7 @@ import { mkdtempSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { handleInbound, handleSending } from "../src/handlers.ts";
+import { handleInbound, handleSending, resolveChannels } from "../src/handlers.ts";
 
 function tmpStore(): string {
   return join(mkdtempSync(join(tmpdir(), "sb-h-")), "switchboard.jsonl");
@@ -100,4 +100,29 @@ test("handleSending: auto-reply to the operator is NOT held (passes normally)", 
   assert.equal(ret, undefined);
   assert.equal((await rows(store)).length, 0);
   assert.equal(notify.calls.length, 0);
+});
+
+test("resolveChannels: deps.channels over env over default", () => {
+  assert.deepEqual(resolveChannels({ channels: ["telegram"] }, {} as NodeJS.ProcessEnv), ["telegram"]);
+  assert.deepEqual(
+    resolveChannels({}, { SWITCHBOARD_CHANNELS: "signal, telegram" } as NodeJS.ProcessEnv),
+    ["signal", "telegram"],
+  );
+  assert.deepEqual(resolveChannels({}, {} as NodeJS.ProcessEnv), ["whatsapp"]);
+  // blank/invalid env → fall back to default (fail-safe)
+  assert.deepEqual(resolveChannels({}, { SWITCHBOARD_CHANNELS: " , " } as NodeJS.ProcessEnv), ["whatsapp"]);
+});
+
+test("handlers intercept a non-default channel when configured via deps.channels", async () => {
+  const store = tmpStore();
+  const notify = fakeNotify();
+  await handleInbound(
+    {},
+    { channel: "telegram", senderId: THIRD_JID, content: "hi, info?" },
+    {},
+    { store, notify: notify.fn, channels: ["telegram"] },
+  );
+  const r = await rows(store);
+  assert.equal(r.length, 1, "telegram inbound is captured when telegram is in the channel set");
+  assert.equal(r[0].state, "pending");
 });
