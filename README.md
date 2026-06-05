@@ -12,6 +12,8 @@ This is a **reference implementation** of a pattern, not a turnkey product. It i
 readable on purpose: read the source, take the idea, and adapt it — the audit policy and the
 channels are env-configurable, so the common cases need no fork.
 
+Built by **[AgentNeo](https://agneo.app)** — AI agents with operational rigor, and the open-source safety patterns to run them.
+
 ## The problem
 
 If you put an LLM-driven agent on a public messaging channel (e.g. a WhatsApp line with an
@@ -216,3 +218,7 @@ hardened, supported product. Read it, fork it, adapt it.
 ## License
 
 MIT — see [LICENSE](./LICENSE).
+
+## About
+
+Built and maintained by **[AgentNeo](https://agneo.app)** — we build AI agents with operational rigor and open-source the safety patterns needed to run them in the real world.
