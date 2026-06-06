@@ -222,3 +222,5 @@ MIT — see [LICENSE](./LICENSE).
 ## About
 
 Built and maintained by **[AgentNeo](https://agneo.app)** — we build AI agents with operational rigor and open-source the safety patterns needed to run them in the real world.
+
+Contact: [gk@agneo.app](mailto:gk@agneo.app)

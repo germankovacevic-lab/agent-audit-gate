@@ -2,7 +2,7 @@
   "name": "agent-audit-gate",
   "version": "0.1.1",
   "license": "MIT",
-  "author": "German Kovacevic",
+  "author": "German Kovacevic <gk@agneo.app>",
   "description": "An audit gate for AI agent outbound messaging: hold the draft, let a senior agent review it, then release.",
   "type": "module",
   "scripts": {
