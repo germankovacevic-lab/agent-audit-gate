@@ -46,24 +46,26 @@ messages a stranger can trigger — the words that leave the machine and land on
 
 ## How it works
 
-```text
-third-party 1:1 DM
-      │
-      ▼
-message_received   ──►  ledger: pending     (reviewer NOT woken yet)
-      │
-      ▼
-agent auto-drafts a reply
-      │
-      ▼
-message_sending    ──►  HELD                (draft is NOT sent)
-      │
-      ▼
-wake reviewer  ◄──  carries the inbound + the draft
-      │
-      ▼
-reviewer audits ──┬──►  RELEASE → deliberate send → answered
-                  └──►  DROP    → dropped (nothing sent)
+```mermaid
+flowchart TD
+    DM["Third-party 1:1 DM"] --> RECV["hook: message_received"]
+    RECV --> PENDING[["ledger: pending<br/>reviewer NOT woken yet"]]
+    PENDING --> DRAFT["agent auto-drafts a reply"]
+    DRAFT --> SENDING{"hook: message_sending<br/>carries ctx.senderId?"}
+    SENDING -->|"no — deliberate send"| PASS["passes through<br/>→ answered"]
+
+    subgraph GATE["The audit gate"]
+        HELD[["HELD<br/>draft is NOT sent"]]
+        WAKE["wake reviewer session<br/>carries inbound + draft"]
+        AUDIT{"senior agent audits<br/>against policy"}
+        HELD --> WAKE --> AUDIT
+    end
+
+    SENDING -->|"yes — auto-reply to a stranger"| HELD
+    AUDIT -->|release| REL["deliberate send → answered"]
+    AUDIT -->|drop| DROP["dropped — nothing leaves the machine"]
+
+    OWN["Operator / agent own number"] -. bypasses gate .-> PASS
 ```
 
 > The operator's own number(s) bypass the gate and flow through normally.
@@ -90,11 +92,16 @@ The key distinguisher: an **auto-reply carries `ctx.senderId`**; a deliberate se
 The ledger is append-only, one line per event. The live state of each thread is **derived**
 (`deriveThreads()`): the last event per phone wins.
 
-```
-inbound  → pending     (opens / reopens the thread)
-draft    → held        (auto-reply held, awaiting audit)
-release  → answered    (reviewer audited and released deliberately)
-drop     → dropped     (reviewer audited and chose not to reply)
+```mermaid
+stateDiagram-v2
+    [*] --> pending: inbound (opens / reopens)
+    pending --> held: draft (auto-reply held)
+    held --> answered: release (audited & released)
+    held --> dropped: drop (audited, no reply)
+    answered --> pending: new inbound reopens
+    dropped --> pending: new inbound reopens
+    answered --> [*]
+    dropped --> [*]
 ```
 
 (`suppressed` is a legacy state for pure suppression with no audit step.)
