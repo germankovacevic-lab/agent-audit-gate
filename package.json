@@ -1,9 +1,9 @@
 {
   "name": "agent-audit-gate",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "MIT",
   "author": "German Kovacevic <gk@agneo.app>",
-  "description": "An audit gate for AI agent outbound messaging: hold the draft, let a senior agent review it, then release.",
+  "description": "Stop your AI agent from leaking private data or obeying prompt injections on a WhatsApp line: a senior AI reviews every outbound message and holds it until it's deliberately safe to send. AI-in-the-loop audit gate / guardrail for outbound channels.",
   "type": "module",
   "scripts": {
     "build": "esbuild index.ts --bundle --format=esm --platform=node --packages=external --outfile=dist/index.js",

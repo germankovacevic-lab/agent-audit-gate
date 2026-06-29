@@ -1,7 +1,7 @@
 {
   "id": "switchboard",
   "name": "Agent Audit Gate",
-  "description": "An audit gate for AI agent outbound messaging: holds the auto-reply draft ('held') and wakes a senior reviewer session to audit it and release it deliberately.",
+  "description": "Stops an AI agent from leaking private data or obeying prompt injections on a 1:1 channel: holds the auto-reply draft ('held') and wakes a senior reviewer session to audit it before it is deliberately released. AI-in-the-loop guardrail for outbound messages.",
   "contracts": { "hooks": ["message_received", "message_sending"] },
   "activation": { "onStartup": true },
   "configSchema": { "type": "object", "additionalProperties": true }
